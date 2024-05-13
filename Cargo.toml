@@ -1,0 +1,17 @@
+[package]
+name = "tserver-rs"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.37", features = ["full"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+tokio-stream = "0.1"
+
+[profile.release]
+debug = false
+lto = true
+codegen-units = 1
+opt-level = 3
+panic = "abort"
+strip = true
