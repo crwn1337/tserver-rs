@@ -1,11 +1,13 @@
 use std::io::{Error, ErrorKind};
 
+use futures::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
-use tokio_stream::StreamExt;
 use tokio_util::{
     bytes::BytesMut,
     codec::{Decoder, Framed, LengthDelimitedCodec},
 };
+
+use crate::packet::Packet;
 
 pub struct Peer {
     frame: Framed<TcpStream, LengthDelimitedCodec>,
@@ -31,5 +33,9 @@ impl Peer {
             Some(res) => res,
             None => Err(Error::from(ErrorKind::UnexpectedEof)),
         }
+    }
+
+    pub async fn send(&mut self, packet: impl Packet<'_>) -> Result<(), Error> {
+        self.frame.send(packet.serialize().into()).await
     }
 }
