@@ -1,4 +1,4 @@
-use nom::IResult;
+use winnow::IResult;
 
 use crate::packet::{types::text::TText, Packet, PacketDirection, PacketType};
 

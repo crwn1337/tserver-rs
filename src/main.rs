@@ -3,7 +3,6 @@ pub mod packet;
 pub mod peer;
 
 use crate::{packet::packets::disconnect::Disconnect, peer::Peer};
-
 use tokio::{
     net::{TcpListener, TcpStream},
     spawn,
@@ -46,11 +45,15 @@ async fn handle_client(socket: TcpStream) {
             Ok(Ok(data)) => data,
             _ => return,
         };
-        let packet_type = match data.get(0) {
+
+        #[allow(unused)]
+        let packet_type = match data.first() {
             Some(type_) => type_,
             _ => return,
         };
-        println!("Received packet type: {}", packet_type);
+
+        // will print everything including the packet type, every type length and etc
+        dbg!(&data);
 
         let packet = Disconnect::new_literal("Yippie! A packet!");
         let _ = peer.send(packet).await;

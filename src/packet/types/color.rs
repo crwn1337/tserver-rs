@@ -1,6 +1,6 @@
 use crate::packet::PacketType;
-use nom::number::complete::u8;
-use nom::IResult;
+use winnow::binary::u8;
+use winnow::{IResult, Parser};
 
 pub struct TColor {
     pub r: u8,
@@ -14,9 +14,9 @@ impl<'a> PacketType<'a> for TColor {
     }
 
     fn deserialize(data: &'a [u8]) -> IResult<&'a [u8], Self> {
-        let (data, r) = u8(data)?;
-        let (data, g) = u8(data)?;
-        let (data, b) = u8(data)?;
+        let (data, r) = u8.parse_peek(data)?;
+        let (data, g) = u8.parse_peek(data)?;
+        let (data, b) = u8.parse_peek(data)?;
         Ok((data, TColor { r, g, b }))
     }
 }

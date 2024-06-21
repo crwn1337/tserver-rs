@@ -1,12 +1,13 @@
 pub mod packets;
 pub mod types;
 
-use nom::IResult;
+use winnow::IResult;
 
 pub trait PacketType<'a> {
     #[must_use]
     fn serialize(&self) -> Vec<u8>;
 
+    #[allow(clippy::double_must_use)] // IResult -> PResult -> Result which is must_use
     #[must_use]
     fn deserialize(data: &'a [u8]) -> IResult<&'a [u8], Self>
     where
@@ -26,6 +27,7 @@ pub trait Packet<'a> {
     #[must_use]
     fn serialize(&self) -> Vec<u8>;
 
+    #[allow(clippy::double_must_use)] // IResult -> PResult -> Result which is must_use
     #[must_use]
     fn deserialize(data: &'a [u8]) -> IResult<&'a [u8], Self>
     where

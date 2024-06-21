@@ -1,6 +1,8 @@
 use crate::packet::PacketType;
-
-use nom::{multi::count, number::complete::u8, IResult};
+use winnow::{
+    binary::{length_repeat, u8},
+    unpeek, IResult, Parser,
+};
 
 use super::string::TString;
 
@@ -45,12 +47,13 @@ impl<'a> TText {
         }
     }
 
+    // TODO: test if this is correct
     fn deserialize_subtitutions(mut self, data: &'a [u8]) -> IResult<&'a [u8], Self> {
         if self.mode == TextMode::Literal {
             return Ok((data, self));
         }
-        let (data, len) = u8(data)?;
-        let (data, subtitutions) = count(TText::deserialize, len as usize)(data)?;
+        let (data, subtitutions) =
+            length_repeat(u8, unpeek(TText::deserialize)).parse_peek(data)?;
         self.subtitutions = Some(subtitutions);
         Ok((data, self))
     }
@@ -58,31 +61,26 @@ impl<'a> TText {
 
 impl<'a> PacketType<'a> for TText {
     fn serialize(&self) -> Vec<u8> {
-        // no idea if this is correct, i just let copilot generate it :)
-        let mut data = vec![self.to_u8()];
+        let mut data = Vec::with_capacity(std::mem::size_of::<u8>() + self.text.len());
+        data.push(self.to_u8());
         data.extend(TString::new(&self.text).serialize());
+        // TODO: test if this is correct
         if let Some(subtitutions) = &self.subtitutions {
             data.push(subtitutions.len() as u8);
-            for subtitution in subtitutions {
-                data.extend(subtitution.serialize());
+            for substitution in subtitutions {
+                data.extend(substitution.serialize());
             }
         }
         data
     }
 
     fn deserialize(data: &'a [u8]) -> IResult<&'a [u8], Self> {
-        let (data, mode) = u8(data)?;
+        let (data, mode) = u8.verify_map(TText::from_u8).parse_peek(data)?;
         let (data, text) = TString::deserialize(data)?;
-
-        // good lord heavens
-        let mode = TText::from_u8(mode).ok_or(nom::Err::Error(nom::error::make_error(
-            data,
-            nom::error::ErrorKind::Verify,
-        )))?;
 
         let networktext = TText {
             mode,
-            text: text.as_ref().to_string(),
+            text: text.to_string(),
             subtitutions: None,
         };
         let (data, networktext) = networktext.deserialize_subtitutions(data)?;

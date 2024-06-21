@@ -7,7 +7,7 @@ edition = "2021"
 tokio = { version = "1.37", features = ["full"] }
 tokio-util = { version = "0.7", features = ["codec"] }
 futures = "0.3"
-nom = "7.1"
+winnow = "0.6"
 
 [profile.release]
 debug = false
