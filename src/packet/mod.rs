@@ -5,10 +5,11 @@ use winnow::IResult;
 
 pub trait PacketType<'a> {
     #[must_use]
+    #[allow(clippy::double_must_use)]
     fn serialize(&self) -> Vec<u8>;
 
-    #[allow(clippy::double_must_use)] // IResult -> PResult -> Result which is must_use
     #[must_use]
+    #[allow(clippy::double_must_use)]
     fn deserialize(data: &'a [u8]) -> IResult<&'a [u8], Self>
     where
         Self: Sized;
@@ -25,10 +26,11 @@ pub trait Packet<'a> {
     const DIRECTION: PacketDirection;
 
     #[must_use]
+    #[allow(clippy::double_must_use)]
     fn serialize(&self) -> Vec<u8>;
 
-    #[allow(clippy::double_must_use)] // IResult -> PResult -> Result which is must_use
     #[must_use]
+    #[allow(clippy::double_must_use)]
     fn deserialize(data: &'a [u8]) -> IResult<&'a [u8], Self>
     where
         Self: Sized;

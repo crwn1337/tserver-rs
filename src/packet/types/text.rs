@@ -1,87 +1,81 @@
 use crate::packet::PacketType;
+use num::{FromPrimitive, ToPrimitive};
+use num_derive::{FromPrimitive, ToPrimitive};
+use std::mem::size_of;
 use winnow::{
     binary::{length_repeat, u8},
     unpeek, IResult, Parser,
 };
 
-use super::string::TString;
-
-#[derive(PartialEq)]
+#[repr(u8)]
+#[derive(PartialEq, FromPrimitive, ToPrimitive)]
 pub enum TextMode {
-    Literal,
-    Formattable,
-    LocalizationKey,
+    Literal = 0,
+    Formattable = 1,
+    LocalizationKey = 2,
 }
 
-pub struct TText {
+pub struct NetworkText {
     pub mode: TextMode,
     pub text: String,
-    pub subtitutions: Option<Vec<TText>>,
+    pub subtitutions: Vec<NetworkText>,
 }
 
-impl TText {
+impl NetworkText {
     pub fn new_literal(text: &str) -> Self {
-        TText {
+        NetworkText {
             mode: TextMode::Literal,
             text: text.to_string(),
-            subtitutions: None,
+            subtitutions: Vec::new(),
         }
     }
 }
 
-impl<'a> TText {
-    fn from_u8(t: u8) -> Option<TextMode> {
-        match t {
-            0 => Some(TextMode::Literal),
-            1 => Some(TextMode::Formattable),
-            2 => Some(TextMode::LocalizationKey),
-            _ => None,
-        }
-    }
-
-    fn to_u8(&self) -> u8 {
-        match self.mode {
-            TextMode::Literal => 0,
-            TextMode::Formattable => 1,
-            TextMode::LocalizationKey => 2,
-        }
-    }
-
+impl<'a> NetworkText {
     // TODO: test if this is correct
     fn deserialize_subtitutions(mut self, data: &'a [u8]) -> IResult<&'a [u8], Self> {
         if self.mode == TextMode::Literal {
             return Ok((data, self));
         }
         let (data, subtitutions) =
-            length_repeat(u8, unpeek(TText::deserialize)).parse_peek(data)?;
-        self.subtitutions = Some(subtitutions);
+            length_repeat(u8, unpeek(NetworkText::deserialize)).parse_peek(data)?;
+        self.subtitutions = subtitutions;
         Ok((data, self))
+    }
+
+    // TODO: test if this is correct
+    fn serialize_subtitutions(&self) -> Vec<u8> {
+        if self.mode == TextMode::Literal || self.subtitutions.is_empty() {
+            return Vec::new();
+        }
+        let mut data = Vec::new();
+        data.push(self.subtitutions.len() as u8);
+        self.subtitutions
+            .iter()
+            .map(|sub| sub.serialize())
+            .for_each(|sub| data.extend(sub));
+        data
     }
 }
 
-impl<'a> PacketType<'a> for TText {
+impl<'a> PacketType<'a> for NetworkText {
     fn serialize(&self) -> Vec<u8> {
-        let mut data = Vec::with_capacity(std::mem::size_of::<u8>() + self.text.len());
-        data.push(self.to_u8());
-        data.extend(TString::new(&self.text).serialize());
-        // TODO: test if this is correct
-        if let Some(subtitutions) = &self.subtitutions {
-            data.push(subtitutions.len() as u8);
-            for substitution in subtitutions {
-                data.extend(substitution.serialize());
-            }
-        }
+        let mut data = Vec::with_capacity(size_of::<u8>() + self.text.len());
+        // Should be safe?
+        data.push(self.mode.to_u8().unwrap());
+        data.extend(self.text.serialize());
+        data.extend(self.serialize_subtitutions());
         data
     }
 
     fn deserialize(data: &'a [u8]) -> IResult<&'a [u8], Self> {
-        let (data, mode) = u8.verify_map(TText::from_u8).parse_peek(data)?;
-        let (data, text) = TString::deserialize(data)?;
+        let (data, mode) = u8.verify_map(TextMode::from_u8).parse_peek(data)?;
+        let (data, text) = String::deserialize(data)?;
 
-        let networktext = TText {
+        let networktext = NetworkText {
             mode,
             text: text.to_string(),
-            subtitutions: None,
+            subtitutions: Vec::new(),
         };
         let (data, networktext) = networktext.deserialize_subtitutions(data)?;
 

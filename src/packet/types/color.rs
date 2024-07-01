@@ -2,13 +2,13 @@ use crate::packet::PacketType;
 use winnow::binary::u8;
 use winnow::{IResult, Parser};
 
-pub struct TColor {
+pub struct Color {
     pub r: u8,
     pub g: u8,
     pub b: u8,
 }
 
-impl<'a> PacketType<'a> for TColor {
+impl<'a> PacketType<'a> for Color {
     fn serialize(&self) -> Vec<u8> {
         vec![self.r, self.g, self.b]
     }
@@ -17,6 +17,6 @@ impl<'a> PacketType<'a> for TColor {
         let (data, r) = u8.parse_peek(data)?;
         let (data, g) = u8.parse_peek(data)?;
         let (data, b) = u8.parse_peek(data)?;
-        Ok((data, TColor { r, g, b }))
+        Ok((data, Color { r, g, b }))
     }
 }

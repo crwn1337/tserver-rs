@@ -1,15 +1,14 @@
+use crate::packet::{types::text::NetworkText, Packet, PacketDirection, PacketType};
 use winnow::IResult;
 
-use crate::packet::{types::text::TText, Packet, PacketDirection, PacketType};
-
 pub struct Disconnect {
-    pub reason: TText,
+    pub reason: NetworkText,
 }
 
 impl Disconnect {
     pub fn new_literal(reason: &str) -> Self {
         Disconnect {
-            reason: TText::new_literal(reason),
+            reason: NetworkText::new_literal(reason),
         }
     }
 }
@@ -19,13 +18,11 @@ impl<'a> Packet<'a> for Disconnect {
     const DIRECTION: PacketDirection = PacketDirection::ToClient;
 
     fn serialize(&self) -> Vec<u8> {
-        let mut data = vec![Self::PACKET_TYPE];
-        data.extend(self.reason.serialize());
-        data
+        self.reason.serialize()
     }
 
     fn deserialize(data: &'a [u8]) -> IResult<&'a [u8], Self> {
-        let (data, reason) = TText::deserialize(data)?;
+        let (data, reason) = NetworkText::deserialize(data)?;
         Ok((data, Self { reason }))
     }
 }

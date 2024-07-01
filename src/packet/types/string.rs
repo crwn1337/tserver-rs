@@ -1,39 +1,21 @@
-use std::ops::Deref;
-
+use crate::packet::PacketType;
+use std::mem::size_of;
 use winnow::{
     binary::{length_take, u8},
     IResult, Parser,
 };
 
-use crate::packet::PacketType;
-
-pub struct TString(String);
-
-impl TString {
-    pub fn new(str: &str) -> Self {
-        TString(str.to_string())
-    }
-}
-
-impl<'a> PacketType<'a> for TString {
+impl<'a> PacketType<'a> for String {
     fn serialize(&self) -> Vec<u8> {
-        let mut data = Vec::with_capacity(std::mem::size_of::<u8>() + self.len());
-        data.push(self.len() as u8);
-        data.extend_from_slice(self.as_bytes());
-        data
+        let mut buf = Vec::with_capacity(size_of::<u8>() + self.len());
+        buf.push(self.len() as u8);
+        buf.extend_from_slice(self.as_bytes());
+        buf
     }
 
     fn deserialize(data: &'a [u8]) -> IResult<&'a [u8], Self> {
         let (data, str_data) = length_take(u8).parse_peek(data)?;
         let str = String::from_utf8_lossy(str_data).to_string();
-        Ok((data, TString(str)))
-    }
-}
-
-impl Deref for TString {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+        Ok((data, str))
     }
 }

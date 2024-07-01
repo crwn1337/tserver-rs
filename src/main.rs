@@ -20,11 +20,6 @@ async fn main() {
             _ => continue,
         };
 
-        match socket.set_nodelay(true) {
-            Ok(_) => (),
-            _ => continue,
-        }
-
         let _addr = match socket.peer_addr() {
             Ok(addr) => addr,
             _ => continue,
